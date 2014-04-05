@@ -54,6 +54,7 @@ mongoose.connect('mongodb://localhost/test');
 //IMG grabber
 app.param('imghash',  function (req, res, next, imghash){
 	console.log(req.datar);
+	req.hash_id = imghash;
 	if(req.all){
 		/*ImgModel.aggregate({ //TODO something like this
 			$sort: {},
@@ -69,7 +70,7 @@ app.param('imghash',  function (req, res, next, imghash){
 		var tag_count = (req.datar.tags? req.datar.tags : 20);
 		ImgModel.find({hash_id: imghash}, function (err, results){
 			if(results.length==0){
-				req.img={};
+				req.img=undefined;
 				next();
 			}
 			var ratings = _.reduce(results, function (memo,i,list){
@@ -108,10 +109,11 @@ app.param('imghash',  function (req, res, next, imghash){
 		UserModel.findOne({uuid: req.datar.uuid},function (err, user){
 			console.log(user);
 			ImgModel.findOne({
-				hash_id : req.datar.imghash,
+				hash_id : imghash,
 				user    : user._id
 			}, function (err, img){
 				if (err) {
+					console.log(err);
 					next(err);
 				} else if (img) {
 					console.log("setting with");
@@ -119,7 +121,8 @@ app.param('imghash',  function (req, res, next, imghash){
 					req.img = img;
 					next();
 				} else {
-					req.img={};
+					console.log("item not found");
+					req.img=undefined;
 					next();
 				}
 			});
@@ -170,36 +173,62 @@ app.get('/api/img_all/:imghash', function (req, res){
 
 app.post('/api/img/:imghash', function (req, res){
 	console.log("POST");
-	console.log(req.img)
-	if(req.img !== {}){	//update
+	console.log(req.img);
+
+	if(!req.img){
+		req.img = new ImgModel({
+			hash_id : req.hash_id.toLowerCase(),
+			user    : req.user_id,
+			rating  : req.datar.rating,
+			tags    : (req.datar.tags 	? req.datar.tags.substr(1).split("#")
+										: undefined),
+		});
+	}else{
+		if(req.datar.rating) req.img.rating = req.datar.rating;
+		if(req.datar.tags) req.img.tags = _.union(req.img.tags,req.datar.tags.substr(1).split("#"));
+	}
+	req.img.save(function (err){
+		console.log(req.img);
+		res.send(req.img);
+		console.log("done.");
+	});
+
+	/*if(req.img){	//update
 		console.log("updating");
 		console.log(req.img);
 		console.log(req.datar);
-		//_.extend(req.img, req.datar, {hash_id: req.imghash});
 		console.log(req.img);
 		ImgModel.update({
-			hash_id: req.img.hash_id
+			hash_id: req.img.hash_id                                                                                    
 		}, {
 			rating : req.datar.rating,
-			tags   : req.datar.tags.substr(1).split("#"),
+			tags   : (req.datar.tags ? req.datar.tags.substr(1).split("#")
+									 : undefined),
 		}, function(err){
 			res.send(req.img);
 		});
 	}else{				//insert
 		console.log("inserting");
-		/*var img = new ImgModel(data);
-		img.save(function (err){
-			res.send(img);
-		});*/
-		ImgModel.insert({
-			hash_id : req.imghash,
+		var img = new ImgModel({
+			hash_id : req.hash_id.toLowerCase(),
 			user    : req.user_id,
 			rating  : req.datar.rating,
-			tags    : req.datar.tags.substr(1).split("#"),
-		},function (err){
+			tags    : (req.datar.tags 	? req.datar.tags.substr(1).split("#")
+										: undefined),
+		});
+		img.save(function (err){
 			res.send(img);
 		});
-	}
+		/*ImgModel.insert({
+			hash_id : req.hash_id,
+			user    : req.user_id,
+			rating  : req.datar.rating,
+			tags    : (req.datar.tags 	? req.datar.tags.substr(1).split("#")
+										: undefined),
+		},function (err){
+			res.send(img);
+		});*/
+	//}
 });
 
 

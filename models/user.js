@@ -1,7 +1,7 @@
 var mongoose = require('mongoose');
 
 var userSchema = mongoose.Schema({
-	uuid: {type: String, lowercase: true, index: true},
+	uuid: {type: String, lowercase: true, unique: true},
 	secret: String,
 	last_access: {type: Date, default: Date.now},
 	last_ip: String,
@@ -26,18 +26,29 @@ userSchema.static('authenticate', function(req, res, next){
 	},function(err, user){
 		console.log(user);
 		if(!user){
-			res.send(500, {error: "No such user."});
-			return;
-		}
-		if(user.secret != req.datar.secret){
+			//res.send(500, {error: "No such user."});
+			//return;
+			console.log("making new user");
+			user = new User({
+				uuid: req.datar.uuid,
+				secret: req.datar.secret
+			});
+			user.save(function(err, user){
+				user.update_timestamp();
+				user.update_last_ip(req.ips);
+				console.log("auth done");
+				req.user_id = user._id;
+				next();
+			});
+		}else if(user.secret != req.datar.secret){
 			res.send(500, {error: "Invalid password."});
-			return;
+		}else{
+			user.update_timestamp();
+			user.update_last_ip(req.ips);
+			console.log("auth done");
+			req.user_id = user._id;
+			next();
 		}
-		user.update_timestamp();
-		user.update_last_ip(req.ips);
-		console.log("auth done");
-		req.user_id = user._id;
-		next();
 	});
 });
 
