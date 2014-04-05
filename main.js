@@ -13,13 +13,13 @@ mongoose.connect('mongodb://localhost/test');
 
 
 var UserModel = require('./models/user');
-var TagModel  = require('./models/tag');
+//var TagModel  = require('./models/tag');
 var ImgModel  = require('./models/img');
 
 
 /*Methods (api.curiosadb.com/img/IMAGE-ID/)
 {	user:uuid, secret:secret	} <- required for all queries
-{	raters:int (default:all), tags:int (default: top 20) } <- optional for get queries
+{	tags:int (default: top 20) } <- optional for get queries
 
 	GET: 		get user's ratings and tags
 	POST/PUT: 	submit user's ratings and tags
@@ -61,23 +61,59 @@ app.all('/api/img/*', function(req, res, next){
 
 //IMG grabber
 app.param('imghash', function(req, res, next, imghash){
-	console.log(req.datar.params);
+	console.log(req.datar);
 	if(req.all){
-		ImgModel.find({
-			hash_id: imghash,
-		}, function(err, img){
-			if (err) {
-				next(err);
-			} else if (img !==[]) {
-				console.log("setting with");
-				console.log(img);
-				req.img = img;
-				next();
-			} else {
-				next(new Error('Failed to load image'));
+		/*ImgModel.aggregate({ //TODO something like this
+			$sort: {},
+			$group: {
+				_id: "$hash_id",
+				rating: {$avg: "$rating"},
+			},
+			$match: {
+				hash_id: { $eq: imghash },
 			}
+		});*/
+		console.log("aggragate");
+		var tag_count = (req.datar.tags? req.datar.tags : 20);
+		ImgModel.find({hash_id: imghash}, function(err, results){
+			if(results.length==0){
+				req.img={};
+				next();
+				return;
+			}
+			var ratings = _.reduce(results, function(memo,i,list){
+					return memo+i.rating;
+				},0) / results.length;
+
+			var tags = _.chain(results)
+				.map(function(e,i,a){
+					return e.tags;
+				})
+				.flatten()
+				.countBy(function(e){
+					return e;
+				})
+				.pairs()
+				.sortBy(function(e,i,a){
+					return -1*e[1];
+				})
+				.reject(function(e,i,a){
+					return i>tag_count-1;
+				})
+				.map(function(e,i,a){
+					return e[0];
+				})
+				.value();
+
+			req.img = {
+				rating  : ratings,
+				tags    : tags,
+				hash_id : imghash,
+			};
+			next();
 		});
 	}else{
+		console.log("single");
 		UserModel.findOne({uuid: req.datar.uuid},function(err, user){
 			if(err) res.send({error: err});
 			console.log(user);
@@ -93,7 +129,8 @@ app.param('imghash', function(req, res, next, imghash){
 					req.img = img;
 					next();
 				} else {
-					next(new Error('Failed to load image'));
+					req.img={};
+					next();
 				}
 			});
 		});
@@ -102,31 +139,34 @@ app.param('imghash', function(req, res, next, imghash){
 
 
 app.get('/api/img/:imghash', function(req, res){
-	console.log("second lvl");
-	console.log(req.img);
-	console.log(req.params);
-	if(req.img !== []){
-		res.send(req.img);
-	}else{
-		res.send("no data"); //no data for file
-	}
+	// console.log("second lvl");
+	// console.log(req.img);
+	// console.log(req.params);
+	res.send(req.img);
 });
 
 app.get('/api/img_all/:imghash', function(req, res){
-	res.send("BARK");
+	// console.log("second lvl");
+	// console.log(req.img);
+	// console.log(req.params);
+	res.send(req.img);
 });
 
 app.post('/api/img/:imghash', function(req, res){
-	if(req.img !== []){//update
+	if(req.img !== {}){	//update
+		console.log("updating");
 		console.log(req.img);
 		console.log(req.datar);
 		_.extend(req.img, req.datar);
 		console.log(req.img);
-		ImgModel.update({ hash_id: req.img.imghash },req.datar, function(err){
+		ImgModel.update({
+			hash_id: req.img.hash_id
+		}, req.datar, function(err){
 			if(err) res.send({error: err});
 			res.send(req.img);
 		});
-	}else{//insert
+	}else{				//insert
+		console.log("inserting");
 		var img = new ImgModel(req.datar);
 		img.save(function(err){
 			if(err) res.send({error: err});
