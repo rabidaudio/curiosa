@@ -7,7 +7,8 @@
     "express": "~3.5.1",
     "mongodb": "~1.4.0",
     "mongoose": "~3.8.8",
-    "underscore": "^1.6.0"
+    "underscore": "^1.6.0",
+    "express-params": "0.0.3"
   },
   "devDependencies": {},
   "scripts": {

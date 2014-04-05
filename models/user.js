@@ -25,18 +25,18 @@ userSchema.static('authenticate', function(req, res, next){
 		uuid: req.datar.uuid,
 	},function(err, user){
 		console.log(user);
-		if(err) throw err;
 		if(!user){
-			res.send({error: "No such user."});
+			res.send(500, {error: "No such user."});
 			return;
 		}
 		if(user.secret != req.datar.secret){
-			res.send({error: "Invalid password."});
+			res.send(500, {error: "Invalid password."});
 			return;
 		}
 		user.update_timestamp();
 		user.update_last_ip(req.ips);
 		console.log("auth done");
+		req.user_id = user._id;
 		next();
 	});
 });
