@@ -50,6 +50,11 @@ app.all('/api/img/*', function(req, res, next){
 	console.log(req.datar);
 	if(!req.datar.uuid)   res.send({error: "Missing user id."});
 	if(!req.datar.secret) res.send({error: "Missing password."});
+	var all = !!req.datar.params[0].match(/\/all/);
+	req.all = all;
+	console.log("all? "+all);
+	console.log(req.url);
+	req.url = req.url.replace(/\/all/,'').replace(/\/img/,'\/img_all'); //rewrite
 	next();
 }, UserModel.authenticate);
 
@@ -57,10 +62,7 @@ app.all('/api/img/*', function(req, res, next){
 //IMG grabber
 app.param('imghash', function(req, res, next, imghash){
 	console.log(req.datar.params);
-	var all = !!req.datar.params[0].match(/\/all/);
-	req.all = all;
-	console.log("all? "+all);
-	if(all){
+	if(req.all){
 		ImgModel.find({
 			hash_id: imghash,
 		}, function(err, img){
@@ -78,9 +80,10 @@ app.param('imghash', function(req, res, next, imghash){
 	}else{
 		UserModel.findOne({uuid: req.datar.uuid},function(err, user){
 			if(err) res.send({error: err});
+			console.log(user);
 			ImgModel.findOne({
 				hash_id : req.datar.imghash,
-				user    : user.uuid
+				user    : user._id
 			}, function(err, img){
 				if (err) {
 					next(err);
@@ -109,6 +112,10 @@ app.get('/api/img/:imghash', function(req, res){
 	}
 });
 
+app.get('/api/img_all/:imghash', function(req, res){
+	res.send("BARK");
+});
+
 app.post('/api/img/:imghash', function(req, res){
 	if(req.img !== []){//update
 		console.log(req.img);
@@ -128,62 +135,17 @@ app.post('/api/img/:imghash', function(req, res){
 	}
 });
 
-/*app.param('img', function(req, res, next, id){
-  UserModel.authenticate(req, function(user){
-
-  });
-  UserModel.findOne(, function(err, user){
-    if (err) {
-      next(err);
-    } else if (user) {
-      req.user = user;
-      next();
-    } else {
-      next(new Error('failed to load user'));
-    }
-  });
-});*/
-
 
 var db = mongoose.connection;
 db.on('error', console.error.bind(console, 'connection error:'));
 db.once('open', function() {
-
 	http.createServer(app).listen(3000);
-
 	https.createServer({
 		key:  fs.readFileSync('certs/ssl-key.pem'),
 		cert: fs.readFileSync('certs/ssl-cert.pem'),
 	}, app).listen(3001);
-
 	/*var u = new User({
 		hash_id: "jules",
 		last_ip: "1234",
-	});
-	var t = Array(2);
-	t[0] = new Tag({data: 'meow'});
-	t[1] = new Tag({data: 'bark'});
-	var i = new Img({
-		hash_id: "test1234",
-		user: u,
-		tags: t,
-	});*/
-	/*u.save(function(err){
-		if(err) throw err;
-		t[0].save();
-		t[1].save(function(err){
-			if(err) throw err;
-			i.save(function(err){
-				if(err) throw err;
-				console.log("YAY");
-				Img.findOne({
-					hash_id: "test1234",
-					'user.hash_id': 'jules',
-				}, function(err, img){
-					if(err) throw err;
-					console.log(img);
-				});
-			});
-		});
 	});*/
 });
