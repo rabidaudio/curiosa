@@ -23,7 +23,11 @@ app.use(UserModel.authenticate);
 
 app.use(app.router);
 
-mongoose.connect('mongodb://localhost/test');
+var mongoUri = process.env.MONGOLAB_URI ||
+  process.env.MONGOHQ_URL ||
+  'mongodb://localhost/mydb';
+
+mongoose.connect(mongoUri);
 
 
 /*Methods (api.curiosadb.com/img/IMAGE-ID/)
