@@ -13,6 +13,12 @@ userSchema.method('update_timestamp', function(cb){
 	this.save(cb);
 });
 
+userSchema.method('update_last_ip', function(ip, cb){
+	if(!cb) cb   = new Function();
+	this.last_ip = ip;
+	this.save(cb);
+});
+
 userSchema.static('authenticate', function(req, res, next){
 	console.log("auth");
 	User.findOne({
@@ -21,17 +27,14 @@ userSchema.static('authenticate', function(req, res, next){
 		if(err) throw err;
 		if(!user){
 			res.send({error: "No such user."});
-			return;
 		}
 		if(user.secret != req.datar.secret){
 			res.send({error: "Invalid password."});
-			return;
 		}
-		/*user.last_access = new Date();
-		user.save(function(){
-			setTimeout(callback, 0, user);
-		});*/
 		user.update_timestamp();
+		var ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+		user.update_last_ip(ip);
+		console.log("auth done");
 		next();
 	});
 });
