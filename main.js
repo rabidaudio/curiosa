@@ -8,6 +8,7 @@ var _        = require('underscore');
 var app = express();
 app.use(express.bodyParser());
 app.use(express.logger());
+app.use(app.router);
 
 mongoose.connect('mongodb://localhost/test');
 
@@ -44,7 +45,7 @@ var ImgModel  = require('./models/img');
 
 
 //AUTH
-app.all('/api/img/*', function(req, res, next){
+app.all('/api/img/*', function (req, res, next){
 	req.datar={};
 	_.extend(req.datar, req.query, req.body, {params:req.params});
 	console.log(req.datar);
@@ -52,15 +53,14 @@ app.all('/api/img/*', function(req, res, next){
 	if(!req.datar.secret) res.send({error: "Missing password."});
 	var all = !!req.datar.params[0].match(/\/all/);
 	req.all = all;
-	console.log("all? "+all);
-	console.log(req.url);
-	req.url = req.url.replace(/\/all/,'').replace(/\/img/,'\/img_all'); //rewrite
+	if(all)
+		req.url = req.url.replace(/\/all/,'').replace(/\/img/,'\/img_all'); //rewrite
 	next();
 }, UserModel.authenticate);
 
 
 //IMG grabber
-app.param('imghash', function(req, res, next, imghash){
+app.param('imghash', function (req, res, next, imghash){
 	console.log(req.datar);
 	if(req.all){
 		/*ImgModel.aggregate({ //TODO something like this
@@ -75,32 +75,31 @@ app.param('imghash', function(req, res, next, imghash){
 		});*/
 		console.log("aggragate");
 		var tag_count = (req.datar.tags? req.datar.tags : 20);
-		ImgModel.find({hash_id: imghash}, function(err, results){
+		ImgModel.find({hash_id: imghash}, function (err, results){
 			if(results.length==0){
 				req.img={};
-				next();
-				return;
+				next('route');
 			}
-			var ratings = _.reduce(results, function(memo,i,list){
+			var ratings = _.reduce(results, function (memo,i,list){
 					return memo+i.rating;
 				},0) / results.length;
 
 			var tags = _.chain(results)
-				.map(function(e,i,a){
+				.map(function (e,i,a){
 					return e.tags;
 				})
 				.flatten()
-				.countBy(function(e){
+				.countBy(function (e){
 					return e;
 				})
 				.pairs()
-				.sortBy(function(e,i,a){
+				.sortBy(function (e,i,a){
 					return -1*e[1];
 				})
-				.reject(function(e,i,a){
+				.reject(function (e,i,a){
 					return i>tag_count-1;
 				})
-				.map(function(e,i,a){
+				.map(function (e,i,a){
 					return e[0];
 				})
 				.value();
@@ -110,49 +109,35 @@ app.param('imghash', function(req, res, next, imghash){
 				tags    : tags,
 				hash_id : imghash,
 			};
-			next();
+			next('route');
 		});
 	}else{
 		console.log("single");
-		UserModel.findOne({uuid: req.datar.uuid},function(err, user){
+		UserModel.findOne({uuid: req.datar.uuid},function (err, user){
 			if(err) res.send({error: err});
 			console.log(user);
 			ImgModel.findOne({
 				hash_id : req.datar.imghash,
 				user    : user._id
-			}, function(err, img){
+			}, function (err, img){
 				if (err) {
 					next(err);
 				} else if (img) {
 					console.log("setting with");
 					console.log(img);
 					req.img = img;
-					next();
+					next('route');
 				} else {
 					req.img={};
-					next();
+					next('route');
 				}
 			});
 		});
 	}
 });
 
-
-app.get('/api/img/:imghash', function(req, res){
-	// console.log("second lvl");
-	// console.log(req.img);
-	// console.log(req.params);
-	res.send(req.img);
-});
-
-app.get('/api/img_all/:imghash', function(req, res){
-	// console.log("second lvl");
-	// console.log(req.img);
-	// console.log(req.params);
-	res.send(req.img);
-});
-
-app.post('/api/img/:imghash', function(req, res){
+app.post('/api/img/:imghash', function (req, res){
+	console.log("POST");
 	if(req.img !== {}){	//update
 		console.log("updating");
 		console.log(req.img);
@@ -168,24 +153,49 @@ app.post('/api/img/:imghash', function(req, res){
 	}else{				//insert
 		console.log("inserting");
 		var img = new ImgModel(req.datar);
-		img.save(function(err){
+		img.save(function (err){
 			if(err) res.send({error: err});
 			res.send(img);
 		});
 	}
 });
 
+app.get('/api/img/:imghash', function (req, res){
+	// console.log("second lvl");
+	// console.log(req.img);
+	// console.log(req.params);
+	res.send(req.img);
+});
+
+app.get('/api/img_all/:imghash', function (req, res){
+	// console.log("second lvl");
+	// console.log(req.img);
+	// console.log(req.params);
+	res.send(req.img);
+});
+
+/*app.all('*', function (req, res, next) {
+	console.log("CATCH");
+	console.log(req.route);
+	console.log(app.routes.post[1].regexp);
+	console.log(">"+req.path+"<");
+	console.log(req.path.match(app.routes.post[1].regexp));
+	var p = req.path;
+	var r = app.routes.post[1].regexp;
+	console.log(p.match(r));
+	next();
+});*/
+
 
 var db = mongoose.connection;
 db.on('error', console.error.bind(console, 'connection error:'));
-db.once('open', function() {
+db.once('open', function () {
+
+	console.log(app.routes);
+
 	http.createServer(app).listen(3000);
 	https.createServer({
 		key:  fs.readFileSync('certs/ssl-key.pem'),
 		cert: fs.readFileSync('certs/ssl-cert.pem'),
 	}, app).listen(3001);
-	/*var u = new User({
-		hash_id: "jules",
-		last_ip: "1234",
-	});*/
 });

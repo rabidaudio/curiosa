@@ -24,16 +24,18 @@ userSchema.static('authenticate', function(req, res, next){
 	User.findOne({
 		uuid: req.datar.uuid,
 	},function(err, user){
+		console.log(user);
 		if(err) throw err;
 		if(!user){
 			res.send({error: "No such user."});
+			return;
 		}
 		if(user.secret != req.datar.secret){
 			res.send({error: "Invalid password."});
+			return;
 		}
 		user.update_timestamp();
-		var ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
-		user.update_last_ip(ip);
+		user.update_last_ip(req.ips);
 		console.log("auth done");
 		next();
 	});
