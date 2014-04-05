@@ -6,7 +6,4 @@ var tagSchema = mongoose.Schema({
 
 var Tag = mongoose.model('Tag', tagSchema);
 
-module.exports = {
-	tagSchema: tagSchema,
-	Tag: Tag,
-};
+module.exports = Tag;

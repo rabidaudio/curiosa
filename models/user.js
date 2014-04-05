@@ -9,28 +9,32 @@ var userSchema = mongoose.Schema({
 
 var User = mongoose.model('User', userSchema);
 
-module.exports = {
-	userSchema: userSchema,
-	User: User,
-
-	authenticate: function(data, callback){
-		var user = User.find({
-			uuid: data.uuid,
-			secret: data.secret,
-		},function(err, users){
-			if(users.length<=0){}
-				console.log("No such user");
-				return;
-			}
-			if(users[0].secret != data.secret){}
-				console.log("Invalid password");
-				return;
-			}
-			var user = users[0];
-			user.last_access = new Date();
-			user.save(function(){
-				setTimeout(callback, 0, users[0]);
-			});
-		});
-	}
+User.methods.update_timestamp = function(cb){
+	if(!cb) cb = new Function();
+	this.last_access = new Date();
+	this.save(cb);
 };
+
+User.statics.authenticate = function(data, callback){
+	User.findOne({
+		uuid: data.uuid,
+	},function(err, user){
+		if(err) throw err;
+		if(!user){
+			console.log("No such user");
+			return;
+		}
+		if(user.secret != data.secret){
+			console.log("Invalid password");
+			return;
+		}
+		/*user.last_access = new Date();
+		user.save(function(){
+			setTimeout(callback, 0, user);
+		});*/
+		user.update_timestamp(callback);
+	});
+};
+
+
+module.exports = User;

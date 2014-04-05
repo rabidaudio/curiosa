@@ -17,8 +17,8 @@ app.use(express.bodyParser());
 mongoose.connect('mongodb://localhost/test');
 
 
-var UserModel = require('models/user');
-var TagModel = require('models/tag');
+var UserModel = require('./models/user');
+var TagModel = require('./models/tag');
 
 
 function err_handler(err){
