@@ -7,34 +7,35 @@ var userSchema = mongoose.Schema({
 	last_ip: String,
 });
 
-var User = mongoose.model('User', userSchema);
-
-User.methods.update_timestamp = function(cb){
-	if(!cb) cb = new Function();
+userSchema.method('update_timestamp', function(cb){
+	if(!cb) cb       = new Function();
 	this.last_access = new Date();
 	this.save(cb);
-};
+});
 
-User.statics.authenticate = function(data, callback){
+userSchema.static('authenticate', function(req, res, next){
+	console.log("auth");
 	User.findOne({
-		uuid: data.uuid,
+		uuid: req.datar.uuid,
 	},function(err, user){
 		if(err) throw err;
 		if(!user){
-			console.log("No such user");
+			res.send({error: "No such user."});
 			return;
 		}
-		if(user.secret != data.secret){
-			console.log("Invalid password");
+		if(user.secret != req.datar.secret){
+			res.send({error: "Invalid password."});
 			return;
 		}
 		/*user.last_access = new Date();
 		user.save(function(){
 			setTimeout(callback, 0, user);
 		});*/
-		user.update_timestamp(callback);
+		user.update_timestamp();
+		next();
 	});
-};
+});
 
+var User = mongoose.model('User', userSchema);
 
 module.exports = User;
