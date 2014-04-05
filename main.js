@@ -249,7 +249,8 @@ db.once('open', function () {
 
 	console.log(app.routes);
 
-	http.createServer(app).listen(3000);
+	var port = Number(process.env.PORT || 5000);
+	http.createServer(app).listen(port);
 	/*https.createServer({
 		key:  fs.readFileSync('certs/ssl-key.pem'),
 		cert: fs.readFileSync('certs/ssl-cert.pem'),
