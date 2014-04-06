@@ -260,3 +260,8 @@ db.once('open', function () {
 		cert: fs.readFileSync('certs/ssl-cert.pem'),
 	}, app).listen(3001);*/
 });
+
+
+function generate_hash(){
+	var hash = CryptoJS.MD5("Message");
+}
