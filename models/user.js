@@ -22,7 +22,7 @@ userSchema.method('update_last_ip', function(ip, cb){
 userSchema.static('authenticate', function(req, res, next){
 	console.log("auth");
 	User.findOne({
-		uuid: req.datar.uuid,
+		uuid: req.rData.uuid,
 	},function(err, user){
 		console.log(user);
 		if(!user){
@@ -30,8 +30,8 @@ userSchema.static('authenticate', function(req, res, next){
 			//return;
 			console.log("making new user");
 			user = new User({
-				uuid: req.datar.uuid,
-				secret: req.datar.secret
+				uuid: req.rData.uuid,
+				secret: req.rData.secret
 			});
 			user.save(function(err, user){
 				user.update_timestamp();
@@ -40,7 +40,7 @@ userSchema.static('authenticate', function(req, res, next){
 				req.user_id = user._id;
 				next();
 			});
-		}else if(user.secret != req.datar.secret){
+		}else if(user.secret != req.rData.secret){
 			res.send(500, {error: "Invalid password."});
 		}else{
 			user.update_timestamp();

@@ -11,15 +11,15 @@ var UserModel = require('./models/user');
 var ImgModel  = require('./models/img');
 
 var app = express();
-app.use(express.bodyParser());
-app.use(express.logger());
+app.use(express.bodyParser()); 	//autoparse POST request bodies
+app.use(express.logger());		//auto request logger
 
 app.use(function(err, req, res, next){
   console.error(err.stack);
   res.send(500, {error: err});
 });
-app.use(pre_auth);
-app.use(UserModel.authenticate);
+// app.use(pre_auth);				//run the pre-auth command before all requests
+// app.use(UserModel.authenticate);
 
 app.use(app.router);
 
@@ -57,7 +57,7 @@ mongoose.connect(mongoUri);
 
 //IMG grabber
 app.param('imghash',  function (req, res, next, imghash){
-	console.log(req.datar);
+	console.log(req.rData);
 	req.hash_id = imghash;
 	if(req.all){
 		/*ImgModel.aggregate({ //TODO something like this
@@ -71,7 +71,7 @@ app.param('imghash',  function (req, res, next, imghash){
 			}
 		});*/
 		console.log("aggragate");
-		var tag_count = (req.datar.tags? req.datar.tags : 20);
+		var tag_count = (req.rData.tags? req.rData.tags : 20);
 		ImgModel.find({hash_id: imghash}, function (err, results){
 			if(results.length==0){
 				req.img=undefined;
@@ -110,7 +110,7 @@ app.param('imghash',  function (req, res, next, imghash){
 		});
 	}else{
 		console.log("single");
-		UserModel.findOne({uuid: req.datar.uuid},function (err, user){
+		UserModel.findOne({uuid: req.rData.uuid},function (err, user){
 			console.log(user);
 			ImgModel.findOne({
 				hash_id : imghash,
@@ -140,24 +140,24 @@ app.param('imghash',  function (req, res, next, imghash){
 
 //AUTH
 /*app.all('/api/img/*', function (req, res, next){
-	req.datar={};
-	_.extend(req.datar, req.query, req.body, {params:req.params});
-	console.log(req.datar);
-	if(!req.datar.uuid)   res.send(500, {error: "Missing user id."});
-	if(!req.datar.secret) res.send(500, {error: "Missing password."});
-	var all = !!req.datar.params[0].match(/\/all/);
+	req.rData={};
+	_.extend(req.rData, req.query, req.body, {params:req.params});
+	console.log(req.rData);
+	if(!req.rData.uuid)   res.send(500, {error: "Missing user id."});
+	if(!req.rData.secret) res.send(500, {error: "Missing password."});
+	var all = !!req.rData.params[0].match(/\/all/);
 	req.all = all;
 	if(all)
 		req.url = req.url.replace(/\/all/,'').replace(/\/img/,'\/img_all'); //rewrite
 	next();
 }, UserModel.authenticate);*/
 function pre_auth(req,res,next){
-	req.datar={};
-	_.extend(req.datar, req.query, req.body, {params:req.params});
-	console.log(req.datar);
-	if(!req.datar.uuid)   res.send(500, {error: "Missing user id."});
-	if(!req.datar.secret) res.send(500, {error: "Missing password."});
-	if(!req.datar.params) req.datar.params = [''];
+	req.rData={};
+	_.extend(req.rData, req.query, req.body, {params:req.params});
+	console.log(req.rData);
+	if(!req.rData.uuid)   res.send(500, {error: "Missing user id."});
+	if(!req.rData.secret) res.send(500, {error: "Missing password."});
+	if(!req.rData.params) req.rData.params = [''];
 	var all = !!req.path.match(/\/all/);
 	req.all = all;
 	if(all){
@@ -168,6 +168,8 @@ function pre_auth(req,res,next){
 }
 
 app.get('/api/img/:imghash', function (req, res){
+	console.log("image "+req.hash_id+" requested.");
+	console.log(req.img);
 	res.send(req.img);
 });
 
@@ -183,13 +185,13 @@ app.post('/api/img/:imghash', function (req, res){
 		req.img = new ImgModel({
 			hash_id : req.hash_id.toLowerCase(),
 			user    : req.user_id,
-			rating  : req.datar.rating,
-			tags    : (req.datar.tags 	? req.datar.tags.substr(1).split("#")
+			rating  : req.rData.rating,
+			tags    : (req.rData.tags 	? req.rData.tags.substr(1).split("#")
 										: undefined),
 		});
 	}else{
-		if(req.datar.rating) req.img.rating = req.datar.rating;
-		if(req.datar.tags) req.img.tags = _.union(req.img.tags,req.datar.tags.substr(1).split("#"));
+		if(req.rData.rating) req.img.rating = req.rData.rating;
+		if(req.rData.tags) req.img.tags = _.union(req.img.tags,req.rData.tags.substr(1).split("#"));
 	}
 	req.img.save(function (err){
 		console.log(req.img);
@@ -200,13 +202,13 @@ app.post('/api/img/:imghash', function (req, res){
 	/*if(req.img){	//update
 		console.log("updating");
 		console.log(req.img);
-		console.log(req.datar);
+		console.log(req.rData);
 		console.log(req.img);
 		ImgModel.update({
 			hash_id: req.img.hash_id                                                                                    
 		}, {
-			rating : req.datar.rating,
-			tags   : (req.datar.tags ? req.datar.tags.substr(1).split("#")
+			rating : req.rData.rating,
+			tags   : (req.rData.tags ? req.rData.tags.substr(1).split("#")
 									 : undefined),
 		}, function(err){
 			res.send(req.img);
@@ -216,8 +218,8 @@ app.post('/api/img/:imghash', function (req, res){
 		var img = new ImgModel({
 			hash_id : req.hash_id.toLowerCase(),
 			user    : req.user_id,
-			rating  : req.datar.rating,
-			tags    : (req.datar.tags 	? req.datar.tags.substr(1).split("#")
+			rating  : req.rData.rating,
+			tags    : (req.rData.tags 	? req.rData.tags.substr(1).split("#")
 										: undefined),
 		});
 		img.save(function (err){
@@ -226,8 +228,8 @@ app.post('/api/img/:imghash', function (req, res){
 		/*ImgModel.insert({
 			hash_id : req.hash_id,
 			user    : req.user_id,
-			rating  : req.datar.rating,
-			tags    : (req.datar.tags 	? req.datar.tags.substr(1).split("#")
+			rating  : req.rData.rating,
+			tags    : (req.rData.tags 	? req.rData.tags.substr(1).split("#")
 										: undefined),
 		},function (err){
 			res.send(img);
@@ -255,6 +257,7 @@ db.once('open', function () {
 
 	var port = Number(process.env.PORT || 5000);
 	http.createServer(app).listen(port);
+	console.log("Listening on port "+port);
 	/*https.createServer({
 		key:  fs.readFileSync('certs/ssl-key.pem'),
 		cert: fs.readFileSync('certs/ssl-cert.pem'),
