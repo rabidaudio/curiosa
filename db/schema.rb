@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20150128183537) do
+ActiveRecord::Schema.define(version: 20150128190825) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -22,8 +22,28 @@ ActiveRecord::Schema.define(version: 20150128183537) do
     t.datetime "updated_at", null: false
   end
 
+  create_table "metadata", force: :cascade do |t|
+    t.integer  "image_id"
+    t.integer  "user_id"
+    t.integer  "rating"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+  end
+
+  add_index "metadata", ["image_id"], name: "index_metadata_on_image_id", using: :btree
+  add_index "metadata", ["user_id"], name: "index_metadata_on_user_id", using: :btree
+
   create_table "tags", force: :cascade do |t|
     t.string   "name"
+    t.datetime "created_at",   null: false
+    t.datetime "updated_at",   null: false
+    t.integer  "metadatum_id"
+  end
+
+  add_index "tags", ["metadatum_id"], name: "index_tags_on_metadatum_id", using: :btree
+
+  create_table "users", force: :cascade do |t|
+    t.string   "uuid"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
   end
