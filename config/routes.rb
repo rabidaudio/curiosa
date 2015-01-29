@@ -5,6 +5,13 @@ Rails.application.routes.draw do
   # You can have the root of your site routed with "root"
   # root 'welcome#index'
 
+  #get ':api_version/:format/i/:hash', to: 'images#show'
+
+  get ':api_version/:format/i/:hash' => 'images#show', constraints: {
+    api_version: /v[0-9]+/,
+    format: /(json|xml)/
+  }
+
   # Example of regular route:
   #   get 'products/:id' => 'catalog#view'
 
