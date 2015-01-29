@@ -5,18 +5,19 @@ class Image < ActiveRecord::Base
   has_many :metadata
 
   #overload find method to use our `hash_id`
-  def self.find(hash_id)
-    find_by(hash_id: hash_id)
+  def self.find hash_id 
+    find_by hash_id: hash_id 
   end
 
   def average_rating
     metadata.pluck(:rating).sum / metadata.length
   end
 
-  def base_stats
+  def info
     {
       id: hash_id,
-      average_rating: average_rating
+      average_rating: average_rating,
+      tags: metadata.tags.pluck(:name) #TODO return count of each as well
     }
   end
 end

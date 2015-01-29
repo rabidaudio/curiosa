@@ -10,22 +10,16 @@ class ImagesController < ApplicationController
   end
 
   def show
-    # puts params
-    # puts request
-    # puts user?
-    # # puts params
-    # # @image = Image.find(1)
-    # # #render json: @image
 
-    @image = Image.find(params[:id])
+    @image = Image.find params[:id]
     if @image.nil?
       throw "No Image found" #TODO
     end
     if user?
-      render json: [@user, @metadata]
+      _render @metadata.info
     else
       #need to calculate base stats for image
-      render json: @image.base_stats
+      _render @image.info
     end
   end
 
@@ -40,9 +34,21 @@ class ImagesController < ApplicationController
     render body: params
   end
 
+  #overload render to choose the proper output method
+  def _render data
+    if params[:format] == "json"
+      render json: data
+    elsif params[:format] == "xml"
+      render xml: data
+    elsif params[:format] == "yaml"
+      # render yaml: data
+      render text: data.to_yaml, content_type: "text/yaml"
+    end
+  end
+
   private
   def user?
-    @user = User.find(params[:user_id]) and @metadata = @image.find_by(user_id: params[:user_id]) unless @user or params[:user_id].nil?
+    @user = User.find(params[:user_id]) and @metadata = Metadatum.find_by(user: @user, image: @image) unless @user or params[:user_id].nil?
   end
 
 end

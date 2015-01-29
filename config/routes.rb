@@ -1,7 +1,5 @@
 Rails.application.routes.draw do
 
-  root 'error#index'
-
   # For now, we are ignoring API version. but in the future when a new version comes out,
   # we should be able to do something like this:
   # =>  http://www.bignerdranch.com/blog/adding-versions-rails-api/
@@ -16,6 +14,8 @@ Rails.application.routes.draw do
       resources :images
     end
   end
+
+  root 'error#index'
 
   #fallthrough
   get '*unmatched_route', :to => 'error#unmatched'

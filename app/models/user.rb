@@ -6,7 +6,7 @@ class User < ActiveRecord::Base
 
   #overload find method to use our `uuid`
   def self.find(uuid)
-    find_by(uuid: uuid).first
+    find_by(uuid: uuid)
   end
 
   def find_image(hash_id)
