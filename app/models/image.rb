@@ -17,7 +17,7 @@ class Image < ActiveRecord::Base
     {
       id: hash_id,
       average_rating: average_rating,
-      tags: metadata.tags.pluck(:name) #TODO return count of each as well
+      tags: metadata.map{ |m| m.tags.pluck(:name)}.flatten #TODO return count of each as well
     }
   end
 end

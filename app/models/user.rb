@@ -12,4 +12,10 @@ class User < ActiveRecord::Base
   def find_image(hash_id)
     images.find_by(hash_id: hash_id)
   end
+
+  def info
+    {
+      id: uuid
+    }
+  end
 end

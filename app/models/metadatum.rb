@@ -5,8 +5,8 @@ class Metadatum < ActiveRecord::Base
 
   def info
     {
-      user_id: user.uuid,
-      image_hash: image.hash_id,
+      user: user.info,
+      image: image.info,
       rating: rating,
       tags: tags.pluck(:name)
     }
