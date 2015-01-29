@@ -1,16 +1,40 @@
 Rails.application.routes.draw do
-  # The priority is based upon order of creation: first created -> highest priority.
-  # See how all your routes lay out with "rake routes".
 
-  # You can have the root of your site routed with "root"
   # root 'welcome#index'
 
-  #get ':api_version/:format/i/:hash', to: 'images#show'
+  # future reference: http://www.bignerdranch.com/blog/adding-versions-rails-api/
 
-  get ':api_version/:format/i/:hash' => 'images#show', constraints: {
+  scope '/:api_verison/:format', constraints: {
     api_version: /v[0-9]+/,
     format: /(json|xml)/
-  }
+  } do
+    
+    #/i/<MD5SUM>/
+    get 'i/:hash'               => 'images#show'
+    put 'i/:hash'               => 'images#add'
+    post 'i/:hash'              => 'images#update'
+    delete 'i/:hash'            => 'images#delete'
+    
+    #/i/<MD5SUM>/rating
+    get 'i/:hash/rating'        => 'images#get_rating'
+    put 'i/:hash/rating'        => 'images#update_rating'
+    post 'i/:hash/rating'       => 'images#add_rating'
+    delete 'i/:hash/rating'     => 'images#delete_rating'
+    
+    #/i/<MD5SUM>/tags
+    get 'i/:hash/tags'          => 'images#get_tags'
+    put 'i/:hash/tags'          => 'images#update_tags'
+    post 'i/:hash/tags'         => 'images#add_tags'
+    delete 'i/:hash/tags'       => 'images#delete_tags'
+    
+    #/i/<MD5SUM>/tags/<N>
+    get 'i/:hash/tags/:tag'     => 'images#get_tag'
+    put 'i/:hash/tags/:tag'     => 'images#update_tag'
+    post 'i/:hash/tags/:tag'    => 'images#add_tag'
+    delete 'i/:hash/tags/:tag'  => 'images#delete_tag'
+
+    
+  end
 
   # Example of regular route:
   #   get 'products/:id' => 'catalog#view'
